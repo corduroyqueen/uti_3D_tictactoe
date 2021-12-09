@@ -5,10 +5,8 @@ using UnityEngine;
 
 public class PaintOnObjectScript : MonoBehaviour
 {
-    //this script + paintshader in the shaders folder is adapted from code i got online
-    //it's here so the walls get painted
-    //there is a glitch with the painting i wasn't able to fix which you might've noticed, which is that the paintball just goes through the wall
-    //from testing it for a bit i don't think it's the code, i think it's an issue with the meshcolliders
+    /// This script + paintshader in the shaders folder is adapted from code I found online
+    /// it paints the walls
     
     [Range(16, 8182)]
     public int textureSize = 64;
@@ -72,8 +70,8 @@ public class PaintOnObjectScript : MonoBehaviour
             m_projSplashTextures.Add(textureAlphas);
         }
     }
-    //this is the painting function
-    private void paintOn(Vector2 textureCoord, float[,] splashTexture, Color targetColor)
+    /// this function paints the blank texture with a random splash texture
+    private void PaintOn(Vector2 textureCoord, float[,] splashTexture, Color targetColor)
     {
         if (m_isEnabled)
         {
@@ -126,10 +124,9 @@ public class PaintOnObjectScript : MonoBehaviour
         return m_projSplashTextures[IntMin(Random.Range(0, m_projSplashTexturesCount),2)];
     }
 
-    //this detects when the ball hits the paintable walls
-    //then it throws a raycast from the ball into the wall to get the textureCoord which determines where to draw the paint texture
-    //then it draws it at that location
-    // note: might be more efficient to have one collision event on the ball rather than one on each wall
+    /// This function detects when the ball hits the paintable walls
+    /// then it throws a raycast from the ball into the wall to get the textureCoord which determines where to draw the paint texture
+    /// then it draws it at that location
     void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.tag == "Player")
@@ -147,7 +144,7 @@ public class PaintOnObjectScript : MonoBehaviour
                 {
                     return;
                 }
-                paintOn(hit.textureCoord, GetRandomProjectileSplash(), ballScript.playerColors[ballScript.playerNum]);
+                PaintOn(hit.textureCoord, GetRandomProjectileSplash(), ballScript.playerColors[ballScript.playerNum]);
             }
             
         }

@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 public class TictactoeBoard : MonoBehaviour
 {
-    //script that handles the tictactoe game/board/scoring, as well as the paintball colliding with the board
+    /// This script handles the tictactoe game board, and its win/tie state
+    /// it also checks where the paintball has collided with it
     private int[,] board = new int[3, 3];
     private GameObject[,] boardPanels = new GameObject[3, 3];
     public GameObject panelPrefab;
@@ -16,14 +17,13 @@ public class TictactoeBoard : MonoBehaviour
     int[] score = new int[2];
 
     public GameObject endingCanvasGroupObject;
-    public Text endingText;
+    public TMPro.TextMeshProUGUI endingWinText, endingTieText, p1ScoreText, p2ScoreText;
 
     private GameObject panelContainer;
 
     void Start()
     {
-        //this instantiates the panels for game board from a panel prefab
-        panelContainer = new GameObject("panelContainer");
+        panelContainer = new GameObject("panelContainer"); //This instantiates the panels for game board from a panel prefab
         for (int y=0; y<side; y++)
         {
             for (int x=0; x<side; x++)
@@ -33,8 +33,8 @@ public class TictactoeBoard : MonoBehaviour
         }
     }
 
-    //next 3 functions check if a row is all the same value, if it is then someone's won
-    bool rowWinCheck ()
+    /// The next 3 functions check if a row/column/diagonal is all the same value, if it is then someone's won
+    bool RowWinCheck ()
     {
         for (int i = 0; i < 3; i++)
         {
@@ -49,7 +49,7 @@ public class TictactoeBoard : MonoBehaviour
         return false;
     }
 
-    bool columnWinCheck()
+    bool ColumnWinCheck()
     {
         for (int i = 0; i < 3; i++)
         {
@@ -64,7 +64,7 @@ public class TictactoeBoard : MonoBehaviour
         return false;
     }
 
-    bool diagonalWinCheck()
+    bool DiagonalWinCheck()
     {
         if (board[0,0] == board[1,1] &&
         board[1,1] == board[2,2] &&
@@ -82,21 +82,21 @@ public class TictactoeBoard : MonoBehaviour
 
         return false;
     }
-    //next three scripts check if a row/column/diagonal is impossible to score in
-    //which means it's tied
-    //the way it does this is checking if there's at least one red and one blue in the row
-    bool generalTieCheck(int posOne, int posTwo)
+
+    /// Next three scripts check for a tie by seeing if a row/column/diagonal is impossible to score in
+    /// (the way it does this is checking if there's at least one red and one blue in the row)
+    bool GeneralTieCheck(int posOne, int posTwo)
     {
-        return (posOne != posTwo) && ((posOne + posTwo) > 2); //since the board is actually ints i can check if theres a red and a blue in the row pretty easily that way
+        return (posOne != posTwo) && ((posOne + posTwo) > 2); //since the board is actually ints i can check if theres a red and a blue in the row just by adding them
     }
 
-    bool rowTieCheck()
+    bool RowTieCheck()
     {
         for (int i = 0; i < 3; i++)
         {
-            if (!(generalTieCheck(board[i,0],board[i,1]) ||
-            generalTieCheck(board[i, 1], board[i, 2]) ||
-            generalTieCheck(board[i, 0], board[i, 2])))
+            if (!(GeneralTieCheck(board[i,0],board[i,1]) ||
+            GeneralTieCheck(board[i, 1], board[i, 2]) ||
+            GeneralTieCheck(board[i, 0], board[i, 2])))
             {
                 return false;
             }
@@ -104,13 +104,13 @@ public class TictactoeBoard : MonoBehaviour
         return true;
     }
 
-    bool columnTieCheck()
+    bool ColumnTieCheck()
     {
         for (int i = 0; i < 3; i++)
         {
-            if (!(generalTieCheck(board[0, i], board[1,i]) ||
-            generalTieCheck(board[1, i], board[2, i]) ||
-            generalTieCheck(board[0, i], board[2, i])))
+            if (!(GeneralTieCheck(board[0, i], board[1,i]) ||
+            GeneralTieCheck(board[1, i], board[2, i]) ||
+            GeneralTieCheck(board[0, i], board[2, i])))
             {
                 return false;
             }
@@ -118,14 +118,14 @@ public class TictactoeBoard : MonoBehaviour
         return true;
     }
 
-    bool diagonalTieCheck()
+    bool DiagonalTieCheck()
     {
-        if (!((generalTieCheck(board[0, 0], board[1, 1]) ||
-            generalTieCheck(board[1, 1], board[2, 2]) ||
-            generalTieCheck(board[0, 0], board[2, 2])) &&
-            (generalTieCheck(board[0, 2], board[1, 1]) ||
-            generalTieCheck(board[1, 1], board[2, 0]) ||
-            generalTieCheck(board[0, 2], board[2, 0]))))
+        if (!((GeneralTieCheck(board[0, 0], board[1, 1]) ||
+            GeneralTieCheck(board[1, 1], board[2, 2]) ||
+            GeneralTieCheck(board[0, 0], board[2, 2])) &&
+            (GeneralTieCheck(board[0, 2], board[1, 1]) ||
+            GeneralTieCheck(board[1, 1], board[2, 0]) ||
+            GeneralTieCheck(board[0, 2], board[2, 0]))))
         {
             return false;
         }
@@ -133,88 +133,95 @@ public class TictactoeBoard : MonoBehaviour
         return true;
     }
 
-    //next three are bool checks, mostly for readability
-    bool gameOverWinner()
+    /// Next three functions are bool checks for win/draw
+    bool GameOverWinner()
     {
-        return (rowWinCheck() || columnWinCheck() || diagonalWinCheck());
+        return (RowWinCheck() || ColumnWinCheck() || DiagonalWinCheck());
     }
 
-    bool gameOverDraw()
+    bool GameOverTie()
     {
-        return (rowTieCheck() && columnTieCheck() && diagonalTieCheck());
+        return (RowTieCheck() && ColumnTieCheck() && DiagonalTieCheck());
     }
 
     bool checkEndGame()
     {
-        return (gameOverDraw() || gameOverWinner());
+        return (GameOverTie() || GameOverWinner());
     }
 
-    //this on collision enter handles what happens when the ball collides with the board
-    //basically it runs some math and sees which quadrant the paintball is in
+    /// This oncollisionenter handles what happens when the ball collides with the board
+    /// it runs some math and sees which quadrant the paintball is in
     void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.tag == "Player")
         {
             GameObject ball = collision.gameObject;
-            Vector2Int ballPos = new Vector2Int(roundTarget(9f-ball.transform.position.y), roundTarget(ball.transform.position.x + 4.5f - 0.2f));
+            Vector2Int ballPos = new Vector2Int(RoundTarget(9f-ball.transform.position.y), RoundTarget(ball.transform.position.x + 4.5f - 0.2f));
+            PaintballShoot ballScript = ball.GetComponent<PaintballShoot>(); //need the paintball script for the playercolor
 
             if (board[ballPos.x, ballPos.y] == 0) { //checking if space is empty i.e. 0
-                PaintballShoot ballScript = ball.GetComponent<PaintballShoot>();
 
                 board[ballPos.x, ballPos.y] = ballScript.playerNum;
                 boardPanels[ballPos.x, ballPos.y].GetComponent<Renderer>().material.SetColor("_Color", ballScript.playerColors[ballScript.playerNum]);
                 recent_player = ballScript.playerNum; //easier to figure out who's won by storing the recent player than checking the entire board
             }
 
-            if (checkEndGame()) //if the games over starts the ending menu
+            if (checkEndGame()) //if this new move has ended the game, start the ending menu
             {
-                ball.GetComponent<PaintballShoot>().turnOffPaintball();
-                TriggerEndingMenu();
+                ball.GetComponent<PaintballShoot>().TurnOffPaintball();
+                TriggerEndingMenu(ballScript.playerColors[ballScript.playerNum]);
             }
         }
     }
 
-    int roundTarget(float position) //this is the math for checking the quadrant
+    int RoundTarget(float position) //this is the math for checking the quadrant the ball's landed in
     {
         return (int) Mathf.Clamp((Mathf.Round(position)/3f),0,2);
     }
     
-    void TriggerEndingMenu()
+    /// The rest of the script handles the player score and ending text
+    /// This first functions just sets the ending text depending on if its a win, tie, and who's won
+    void TriggerEndingMenu(Color winnerColor)
     {
-        startMenuFadeIn(endingCanvasGroupObject);
+        StartMenuFadeIn(endingCanvasGroupObject);
 
-        if (gameOverDraw())
+        if (GameOverTie())
         {
-            endingText.text = "TIE GAME!";
+            endingWinText.text = "";
+            endingTieText.text = "TIE GAME!";
         }
-        else if (gameOverWinner())
+        else if (GameOverWinner())
         {
             score[recent_player - 1]++;
+            p1ScoreText.text = "P1: " + score[0];
+            p2ScoreText.text = "P2: " + score[1];
+            endingWinText.color = winnerColor;
+            endingTieText.text = "\nWINS!";
             if (recent_player == player_one)
             {
-                endingText.text = "RED WINS!";
+                endingWinText.text = "P1";
             } 
             else 
             {
-                endingText.text = "BLUE WINS!";
+                endingWinText.text = "P2";
             }
         }
     }
-
-    void startMenuFadeIn(GameObject canvasObject)
+    /// General menu fade in function, can use for start menu or ending menu
+    void StartMenuFadeIn(GameObject canvasObject)
     {
         canvasObject.GetComponent<CanvasGroup>().interactable = true;
         canvasObject.GetComponent<CanvasGroup>().blocksRaycasts = true;
-        canvasObject.GetComponent<FadeCanvasScript>().startFadeInCanvasGroup();
+        canvasObject.GetComponent<FadeCanvasScript>().StartFadeInCanvasGroup();
     }
 
-    //cute board wiping coroutine
-    public void startWipeBoard()
+    /// Board wiping coroutine upon reset
+    public void StartWipeBoard()
     {
-        StartCoroutine(wipeBoard());
+        StartCoroutine(WipeBoard());
     }
 
-    IEnumerator wipeBoard()
+    IEnumerator WipeBoard()
     {
         for (int y = 0; y < side; y++)
         {

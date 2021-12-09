@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class SlingshotBandScript : MonoBehaviour
 {
-    //makes the two slingshot bands point at the sling
-    //(bands are the ropes and sling is the holder for the balloon)
-    //the targetPivot gameObjects are children of the model
+    /// This script makes the two slingshot bands point at the sling
+    /// (bands are the ropes and sling is the holder for the balloon)
+    /// the targetPivot gameObjects are children of the slingshot sling model
 
     public GameObject targetPivot;
 

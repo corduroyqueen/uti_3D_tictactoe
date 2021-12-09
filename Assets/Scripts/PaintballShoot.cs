@@ -5,53 +5,50 @@ using UnityEngine.UI;
 
 public class PaintballShoot : MonoBehaviour
 {
-    //dis script controls the paintball, the player shooting it, and a bit of the model scaling
-    //there is only a need for one paintball at a time so i figured rather than making a prefab
-    //it would be fine to just have one paintball with some states
+    /// This script controls the paintball, how the player shoots it, and a bit of the model scaling
 
-    public int playerNum = 1;
-    public Color playerColor;
-
-    Vector3 dragPoint;
-    Vector3 dragOffset;
-    Vector3 startPos;
-    Vector3 spawnPos;
-    float grav = 0.03f;
-
-    public GameObject paintballModel;
-    Material paintballModelMaterial;
-    float paintballBounceVel = 0;
-
-    public GameObject slingshotSling;
-    public Vector3 velocity;
-
-    //enum state machine
-    //i know doing state machines with classes is better but the game is so small so i went for the enums
-    // ?????
-    public enum STATE_TYPE { DEFAULT, SPAWNING, WAITING, AIMING, TRAVELING, DEAD };
-    public STATE_TYPE state;
-    int dead_timer = -100; //dead timer starts negative so the balloon will drop later for the opening camera movement
-
-    public Text textext;
-
-    public Color[] playerColors = new Color[3];
-    private float screenDragConstant;
-    private float slingshotHeightOnScreen;
 
     private bool onMobile;
 
+    public int playerNum = 1; //vars for which player is currently playing and their colors
+    public Color playerColor;
+    public Color[] playerColors = new Color[3];
+    public ColorSliderScript playerOneSlider, playerTwoSlider;
+
+
+    Vector3 startPos; //physics and important positions for spawning
+    Vector3 spawnPos;
+    int dead_timer = -100; //dead timer starts negative so the balloon will drop later for the opening camera movement
+    float grav = 0.03f;
+    public Vector3 velocity;
+
+    /// State machine for the paintball is done with enums
+    public enum STATE_TYPE { DEFAULT, SPAWNING, WAITING, AIMING, TRAVELING, DEAD };
+    public STATE_TYPE state;
     
+
+    Vector3 dragPoint; //variables used for dragging the slingshot sling
+    Vector3 dragOffset;
+    private float screenDragConstant;
+    private float slingshotHeightOnScreen;
+
+    public GameObject paintballModel; //references for mod
+    Material paintballModelMaterial;
+    float paintballBounceVel = 0;
+    public GameObject slingshotSling;
 
     void Start()
     {
         Application.targetFrameRate = 60;
         Screen.orientation = ScreenOrientation.Portrait;
-        slingshotHeightOnScreen = Screen.height * 0.31f;
+
+        onMobile = (Application.platform == RuntimePlatform.Android) || (Application.platform == RuntimePlatform.IPhonePlayer);
+
+        slingshotHeightOnScreen = Screen.height * 0.31f; //this variable is used to adjust the sling dragging for different mobile screens
         screenDragConstant = (420f / slingshotHeightOnScreen);
 
         state = STATE_TYPE.DEFAULT;
 
-        //letting the players choose the colors might be nice
         playerColors[0] = Color.black;
         playerColors[1] = Color.red;
         playerColors[2] = Color.blue;
@@ -65,53 +62,52 @@ public class PaintballShoot : MonoBehaviour
         spawnPos = startPos + Vector3.up * 8f;
         transform.position = spawnPos;
 
-        onMobile = (Application.platform == RuntimePlatform.Android) || (Application.platform == RuntimePlatform.IPhonePlayer);
     }
     
-    //update and the switchState function after control the states
-    //i know doing state machines with classes is better and more scalable than enums
-    //but since its a small game i went for the enums
+    ///Update and the SwitchState function control the states of the paintball
     void Update()
     {
         if (state == STATE_TYPE.DEFAULT)
         {
+            playerColors[1] = playerOneSlider.selectedColor;
+            playerColors[2] = playerTwoSlider.selectedColor;
             return;
         }
 
-        //these float adjusts the aiming for different screen sizes
-        //having them in update here lets you change resolutions in the editor so im leaving them for that purpose
+        /// these floats adjusts the aiming for different screen sizes
+        /// having them in update here lets you change resolutions in the editor but this should be deleted if exporting
         slingshotHeightOnScreen = Screen.height * 0.31f;
         screenDragConstant = (420f / slingshotHeightOnScreen); 
 
-        mobileInputController();
+        MobileInputController();
 
         velocity += new Vector3(0f, -grav, 0f); //adding grav here so i can set to zero in the states if i need to before position is moved
         
         switch(state)
         {
-            case STATE_TYPE.SPAWNING:
+            case STATE_TYPE.SPAWNING: //spawning = when the ball is falling from spawnPos to startPos
                 if (transform.position.y < startPos.y)
                 {
-                    switchState(STATE_TYPE.WAITING);
+                    SwitchState(STATE_TYPE.WAITING);
                 }
                 break;
-            case STATE_TYPE.WAITING:
-                paintballPendulum();
+            case STATE_TYPE.WAITING: //waiting = when the ball is resting in the slingshot
+                PaintballPendulum(); //this function makes the paintball a little bouncy
                 velocity = Vector3.zero;
                 transform.position = startPos;
                 break;
-            case STATE_TYPE.AIMING:
+            case STATE_TYPE.AIMING: //aiming = when you're dragging it
                 velocity = Vector3.zero;
                 paintballModel.transform.localScale = Vector3.one * 30f;
                 break;
-            case STATE_TYPE.TRAVELING:
-                slingshotSling.transform.position = vSpring(slingshotSling.transform.position, startPos, 30f);
+            case STATE_TYPE.TRAVELING: //traveling = when the ball is in the air
+                slingshotSling.transform.position = VectorSpring(slingshotSling.transform.position, startPos, 30f);
                 if (transform.position.y < -20)
                 {
-                    switchState(STATE_TYPE.DEAD);
+                    SwitchState(STATE_TYPE.DEAD);
                 }
                 break;
-            case STATE_TYPE.DEAD:
+            case STATE_TYPE.DEAD: //dead = a state where nothing happens so players can react to the shot
                 velocity = Vector3.zero;
                 dead_timer++;
                 if (dead_timer < 40)
@@ -119,7 +115,7 @@ public class PaintballShoot : MonoBehaviour
                     return;
                 }
                 dead_timer = 0;
-                switchState(STATE_TYPE.SPAWNING);
+                SwitchState(STATE_TYPE.SPAWNING);
                 break;
         }
         
@@ -127,7 +123,8 @@ public class PaintballShoot : MonoBehaviour
         paintballModel.transform.LookAt(transform.position + new Vector3(velocity.x, velocity.y * 1.5f, velocity.z));
     }
 
-    void switchState(STATE_TYPE newState)
+    /// This function switches the state and handles all one-time variable sets ie velocity becoming zero or setting the start position
+    void SwitchState(STATE_TYPE newState)
     {
         state = newState;
         switch (state)
@@ -151,7 +148,7 @@ public class PaintballShoot : MonoBehaviour
                 transform.position = spawnPos;
                 velocity = Vector3.zero;
                 GetComponent<Rigidbody>().velocity = new Vector3(0f, 0f, 0f);
-                switchPlayerTurn(playerNum);
+                SwitchPlayerTurn(playerNum);
                 break;
             case STATE_TYPE.DEFAULT:
                 transform.position = spawnPos;
@@ -161,19 +158,19 @@ public class PaintballShoot : MonoBehaviour
         }
     }
 
-    //enabling/disabling functions for the menu buttons
-    public void turnOnPaintball()
+    /// This functions enable/disable the paintball for the menu to be able to interact with the paintball
+    public void TurnOnPaintball()
     {
-        switchState(STATE_TYPE.DEAD);
+        SwitchState(STATE_TYPE.DEAD);
     }
 
-    public void turnOffPaintball()
+    public void TurnOffPaintball()
     {
-        switchState(STATE_TYPE.DEFAULT);
+        SwitchState(STATE_TYPE.DEFAULT);
     }
 
     //switching player turn function
-    void switchPlayerTurn(int player)
+    void SwitchPlayerTurn(int player)
     {
         switch (playerNum)
         {
@@ -187,22 +184,21 @@ public class PaintballShoot : MonoBehaviour
         paintballModelMaterial.SetColor("_Color", playerColors[playerNum]);
     }
 
-    //spring for the slingshot sling to fire
-    //i want it to be more springy and bounce around but not sure i have time
-    public static float fSpring(float from, float to, float time)
+    /// Spring for the slingshot sling to look like it's firing the paintball
+    public static float FloatSpring(float from, float to, float time)
     {
         time = Mathf.Clamp01(time);
         time = (Mathf.Sin(time * Mathf.PI * (.2f + 2.5f * time * time * time)) * Mathf.Pow(1f - time, 2.2f) + time) * (1f + (1.2f * (1f - time)));
         return from + (to - from) * time;
     }
 
-    public static Vector3 vSpring(Vector3 from, Vector3 to, float time)
+    public static Vector3 VectorSpring(Vector3 from, Vector3 to, float time)
     {
-        return new Vector3(fSpring(from.x, to.x, time), fSpring(from.y, to.y, time), fSpring(from.z, to.z, time));
+        return new Vector3(FloatSpring(from.x, to.x, time), FloatSpring(from.y, to.y, time), FloatSpring(from.z, to.z, time));
     }
 
-    //some basic pendulum math that makes the balloon a tiny bit more juicy when it lands
-    void paintballPendulum()
+    /// Pendulum math that makes the balloon a tiny bit more juicy when it lands by changing its scale
+    void PaintballPendulum()
     {
         paintballBounceVel += (30f - paintballModel.transform.localScale.z);
         paintballBounceVel *= 0.9999f;
@@ -211,13 +207,13 @@ public class PaintballShoot : MonoBehaviour
         paintballModel.transform.localScale = new Vector3(30f + (30f-zval), 30f + (30f - zval), zval);
     }
 
-    //next are all the input functions
-    //first is mouse for desktop and after is touch for mobile
+    /// The rest of the script is used for input functions
+    /// first is mouse for desktop and after is touch for mobile
     void OnMouseDown()
     {
         if (!onMobile && state == STATE_TYPE.WAITING)
         {
-            switchState(STATE_TYPE.AIMING);
+            SwitchState(STATE_TYPE.AIMING);
         }
     }
 
@@ -232,8 +228,6 @@ public class PaintballShoot : MonoBehaviour
             
             slingshotSling.transform.position = transform.position; //this moves the sling model to the drag point
             slingshotSling.transform.LookAt(startPos);
-
-            //textext.text = Input.mousePosition.ToString(); //debug
         }
     }
 
@@ -241,13 +235,13 @@ public class PaintballShoot : MonoBehaviour
     {
         if (!onMobile && state == STATE_TYPE.AIMING)
         {
-            switchState(STATE_TYPE.TRAVELING);
+            SwitchState(STATE_TYPE.TRAVELING);
             Vector3 angle = (startPos - transform.position) * 0.03f;
             velocity = new Vector3(angle.x * 4f, dragOffset.y * screenDragConstant * 0.0020f, angle.z * 14f); //i went for just coding the physics myself instead of using rigidbodies
         }
     }
 
-    void mobileInputController()
+    void MobileInputController()
     {
         if (!onMobile)
         {
@@ -264,7 +258,7 @@ public class PaintballShoot : MonoBehaviour
                     if (state == STATE_TYPE.WAITING)
                     {
                         dragPoint = new Vector3(touch.position.x, slingshotHeightOnScreen, 0f);
-                        switchState(STATE_TYPE.AIMING);
+                        SwitchState(STATE_TYPE.AIMING);
                     }
                 }
             } else if (state == STATE_TYPE.AIMING)
@@ -279,12 +273,10 @@ public class PaintballShoot : MonoBehaviour
 
                     slingshotSling.transform.position = transform.position; //this moves the sling model to the drag point
                     slingshotSling.transform.LookAt(startPos);
-
-                    //textext.text = touch.position.ToString();
                 }
                 if (touch.phase == TouchPhase.Ended)
                 {
-                    switchState(STATE_TYPE.TRAVELING);
+                    SwitchState(STATE_TYPE.TRAVELING);
                     Vector3 angle = (startPos - transform.position) * 0.03f;
                     velocity = new Vector3(angle.x * 4f, dragOffset.y * screenDragConstant * 0.0020f, angle.z * 14f);
                 }

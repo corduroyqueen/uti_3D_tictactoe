@@ -4,9 +4,7 @@ using UnityEngine;
 
 public class CameraManager : MonoBehaviour
 {
-    //camera script to start the game
-    //movement is initiated by startGameFromMenu(), which is activated from the start button on the canvas
-    
+    /// Script that runs the camera movement that happens at the start of the game
     public Vector3 menuPosition, menuRotation, gameplayPosition, gameplayRotation;//, winnerPosition, winnerRotation;
     private Vector3 velocity = Vector3.zero;
     bool startingGame = false;
@@ -19,6 +17,7 @@ public class CameraManager : MonoBehaviour
         }
     }
 
+    /// This function moves the camera
     void DampCameraPosition(Vector3 targetPosition, float positionSpeed, Vector3 targetRotation, float rotationSpeed)
     {
         transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, positionSpeed);
@@ -33,6 +32,7 @@ public class CameraManager : MonoBehaviour
         
     }
 
+    /// This function starts the movement, which is activated from the start button on the canvas
     public void StartGameFromMenu()
     {
         startingGame = true;

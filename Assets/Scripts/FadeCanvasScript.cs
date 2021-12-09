@@ -4,37 +4,39 @@ using UnityEngine;
 
 public class FadeCanvasScript : MonoBehaviour
 {
-    //simple script that fades the menus with coroutines
-    //activated from buttons in the inspector
+    /// This script that fades the menus in and out with coroutines, which is activated by the menu buttons
     public CanvasGroup targetCanvas;
 
-    public void startFadeOutCanvasGroup()
+    public void StartFadeOutCanvasGroup()
     {
-        StartCoroutine(fadeTextToZeroAlpha(1f, targetCanvas));
+        StartCoroutine(FadeTextToZeroAlpha(1f, targetCanvas));
     }
 
-    public void startFadeInCanvasGroup()
+    public void StartFadeInCanvasGroup()
     {
-        StartCoroutine(fadeTextToFullAlpha(0f, targetCanvas));
+        StartCoroutine(FadeTextToFullAlpha(1f, targetCanvas));
     }
 
-    IEnumerator fadeTextToFullAlpha(float t, CanvasGroup i)
+    IEnumerator FadeTextToFullAlpha(float t, CanvasGroup i)
     {
-        i.alpha = 0.0f;
-        while (i.alpha < 1.0f)
+        i.alpha = 1.0f;
+        RectTransform trans = GetComponent<RectTransform>();
+        trans.anchoredPosition3D = new Vector3(0f, 0f, 50000f);
+        while (trans.anchoredPosition3D.z>0f)
         {
-            i.alpha += Time.deltaTime / t;
+            trans.anchoredPosition3D = Vector3.Lerp(trans.anchoredPosition3D, new Vector3(0f, 0f, -100f), 0.4f); //this code fades the menu in by making it zoom in from far away
             yield return null;
         }
+        trans.anchoredPosition3D = Vector3.zero;
         yield break;
     }
 
-    IEnumerator fadeTextToZeroAlpha(float t, CanvasGroup i)
+    IEnumerator FadeTextToZeroAlpha(float t, CanvasGroup i)
     {
         i.alpha = 1.0f;
         while (i.alpha > 0.0f)
         {
-            i.alpha -= Time.deltaTime / t;
+            i.alpha -= Time.deltaTime / t; //this code makes the starting and ending menus fade to 0 alpha
             yield return null;
         }
         yield break;
